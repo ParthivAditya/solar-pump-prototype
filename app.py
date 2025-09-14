@@ -48,15 +48,16 @@ else:
     st.warning("⚠️ Low Solar Power – Switching to Grid/Diesel Backup")
 
 # ----------------------------
-# Graph
+# Graph (Bar Chart)
 # ----------------------------
 hours = np.arange(0, 24, 1)
 solar_profile = np.maximum(0, np.sin((hours - 6) / 12 * np.pi)) * solar_irradiance
 pump_output = solar_profile * panel_area * panel_efficiency * duty_cycle/100 * pump_efficiency
 
 fig, ax = plt.subplots()
-ax.plot(hours, solar_profile, label="Solar Irradiance (kW/m²)")
-ax.plot(hours, pump_output, label="Pump Power Output (kW)")
+ax.bar(hours - 0.2, solar_profile, width=0.4, label="Solar Irradiance (kW/m²)")
+ax.bar(hours + 0.2, pump_output, width=0.4, label="Pump Power Output (kW)")
+
 ax.set_xlabel("Time of Day (hrs)")
 ax.set_ylabel("Power / Output")
 ax.legend()
