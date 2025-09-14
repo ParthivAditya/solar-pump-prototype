@@ -48,20 +48,24 @@ else:
     st.warning("⚠️ Low Solar Power – Switching to Grid/Diesel Backup")
 
 # ----------------------------
-# Graph (Bar Chart)
+# ----------------------------
+# Graph (Bar Chart with more spacing)
 # ----------------------------
 hours = np.arange(0, 24, 1)
 solar_profile = np.maximum(0, np.sin((hours - 6) / 12 * np.pi)) * solar_irradiance
 pump_output = solar_profile * panel_area * panel_efficiency * duty_cycle/100 * pump_efficiency
 
-fig, ax = plt.subplots()
-ax.bar(hours - 0.2, solar_profile, width=0.4, label="Solar Irradiance (kW/m²)")
-ax.bar(hours + 0.2, pump_output, width=0.4, label="Pump Power Output (kW)")
+fig, ax = plt.subplots(figsize=(12, 6))  # bigger figure size
+
+# Wider gap between bars (-0.3 and +0.3 instead of -0.2 and +0.2)
+ax.bar(hours - 0.3, solar_profile, width=0.4, label="Solar Irradiance (kW/m²)")
+ax.bar(hours + 0.3, pump_output, width=0.4, label="Pump Power Output (kW)")
 
 ax.set_xlabel("Time of Day (hrs)")
 ax.set_ylabel("Power / Output")
 ax.legend()
 st.pyplot(fig)
+
 
 # ----------------------------
 # Footer
