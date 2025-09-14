@@ -2,72 +2,80 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ----------------------------
-# Title & Description
-# ----------------------------
-st.title("☀️ Solar-Powered Dewatering Prototype")
-st.write("A simple simulation of solar PV powered pumping system under OPEX model")
+st.set_page_config(page_title="Smart Pump & Solar Dashboard", layout="wide")
 
-# ----------------------------
-# User Inputs
-# ----------------------------
-solar_irradiance = st.slider("Solar Irradiance (kW/m²)", 0.0, 1.2, 0.8, 0.1)
-duty_cycle = st.slider("Pump Duty Cycle (%)", 0, 100, 70, 5)
-water_inflow = st.number_input("Water Inflow Rate (Liters/sec)", 0.0, 50.0, 10.0, 1.0)
+st.title("🚰 Smart Pump & Solar Monitoring Dashboard")
 
-# ----------------------------
-# Constants & Calculations
-# ----------------------------
-panel_efficiency = 0.18  # 18% efficiency
-panel_area = 10  # m² panel area
+# ---------------- Sidebar Inputs ---------------- #
+st.sidebar.header("🔧 Control Panel")
 
-pv_power = solar_irradiance * panel_area * panel_efficiency  # kW
-pump_efficiency = 0.75
-pump_power = (pv_power * duty_cycle / 100) * pump_efficiency
+# Water level input
+water_level = st.sidebar.slider("Water Level (%)", 0, 100, 50)
 
-water_pumped = (water_inflow * duty_cycle/100) * 3600 / 1000  # m³/hr
-diesel_equiv = pump_power * 0.27  # liters diesel saved (approx)
-co2_reduction = diesel_equiv * 2.68  # kg CO2 saved
+# Pump inputs
+flow = st.sidebar.number_input("Flow Rate (m³/s)", 0.01, 1.0, 0.2, step=0.01)
+head = st.sidebar.number_input("Head (m)", 1, 100, 30)
+efficiency = st.sidebar.slider("Pump Efficiency (%)", 10, 90, 70)
 
-# ----------------------------
-# Outputs
-# ----------------------------
-st.subheader("🔹 Simulation Results")
-st.metric("PV Power Generated", f"{pv_power:.2f} kW")
-st.metric("Pump Power Utilized", f"{pump_power:.2f} kW")
-st.metric("Water Pumped", f"{water_pumped:.2f} m³/hr")
-st.metric("CO₂ Emission Reduction", f"{co2_reduction:.2f} kg/hr")
+# Solar inputs
+solar_irradiance = st.sidebar.slider("Solar Irradiance (W/m²)", 0, 1200, 800)
+panel_area = st.sidebar.number_input("PV Panel Area (m²)", 1, 50, 10)
+panel_eff = st.sidebar.slider("PV Efficiency (%)", 5, 25, 15)
 
-# ----------------------------
-# System Status
-# ----------------------------
-st.subheader("🔹 System Status")
-if pv_power > 0.2:
-    st.success("✅ Pump Operating on Solar Power")
-else:
-    st.warning("⚠️ Low Solar Power – Switching to Grid/Diesel Backup")
+# Diesel / OPEX costs
+diesel_cost = st.sidebar.number_input("Diesel Cost per kWh (₹)", 10, 30, 18)
+solar_opex = st.sidebar.number_input("Solar OPEX per kWh (₹)", 0, 5, 1)
 
-# ----------------------------
-# ----------------------------
-# Graph (Bar Chart with more spacing)
-# ----------------------------
-hours = np.arange(0, 24, 1)
-solar_profile = np.maximum(0, np.sin((hours - 6) / 12 * np.pi)) * solar_irradiance
-pump_output = solar_profile * panel_area * panel_efficiency * duty_cycle/100 * pump_efficiency
+# ---------------- Calculations ---------------- #
+pump_power = (flow * head * 9.81) / (efficiency / 100)  # kW
+solar_power = (solar_irradiance * panel_area * (panel_eff / 100)) / 1000  # kW
+diesel_equivalent = solar_power
+co2_saved = diesel_equivalent * 0.27  # kg CO₂ saved
+cost_saving = (diesel_cost - solar_opex) * solar_power
 
-fig, ax = plt.subplots(figsize=(12, 6))  # bigger figure size
+# ---------------- TOP SECTION ---------------- #
+st.subheader("💧 Water Tank & Pump Status")
 
-# Wider gap between bars (-0.3 and +0.3 instead of -0.2 and +0.2)
-ax.bar(hours - 0.3, solar_profile, width=0.4, label="Solar Irradiance (kW/m²)")
-ax.bar(hours + 0.3, pump_output, width=0.4, label="Pump Power Output (kW)")
+col1, col2 = st.columns([2, 1])
 
-ax.set_xlabel("Time of Day (hrs)")
-ax.set_ylabel("Power / Output")
+with col1:
+    st.progress(water_level / 100)  # gauge-like progress bar
+    st.write(f"Tank Level: **{water_level}%**")
+
+with col2:
+    if water_level < 30:
+        st.error("🚫 Pump OFF (Low Water Level)")
+    else:
+        st.success("✅ Pump ON (Sufficient Water)")
+
+# ---------------- MIDDLE SECTION ---------------- #
+st.subheader("📊 Solar vs Pump Performance")
+
+time = np.arange(0, 24, 1)
+solar_profile = (np.maximum(0, np.sin((time - 6) / 12 * np.pi))) * solar_power
+pump_profile = np.random.normal(pump_power, 0.2, len(time))
+
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.bar(time - 0.2, solar_profile, width=0.4, label="Solar PV Generation (kW)", color="orange")
+ax.bar(time + 0.2, pump_profile, width=0.4, label="Pump Power Output (kW)", color="blue")
+
+ax.set_xlabel("Hour of Day")
+ax.set_ylabel("Power (kW)")
 ax.legend()
 st.pyplot(fig)
 
+# ---------------- BOTTOM SECTION ---------------- #
+st.subheader("🌱 Sustainability & Cost Impact")
 
-# ----------------------------
-# Footer
-# ----------------------------
+col3, col4 = st.columns(2)
+
+with col3:
+    st.metric("🌍 Carbon Emissions Avoided", f"{co2_saved:.2f} kg CO₂/hr")
+    st.caption("Eco-friendly: CO₂ reduced compared to diesel pump.")
+
+with col4:
+    st.metric("💰 OPEX Savings", f"₹{cost_saving:.2f} per hour")
+    st.caption("Cost advantage of Solar vs Diesel OPEX model.")
+
+# ---------------- Footer ---------------- #
 st.caption("Prototype Simulation – Solar Dewatering under OPEX Model")
